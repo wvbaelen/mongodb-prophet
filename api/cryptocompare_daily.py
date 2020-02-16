@@ -10,8 +10,12 @@ https://min-api.cryptocompare.com/
 
 import pandas as pd
 import cryptocompare
-import datetime, json
-from datetime import date
+import json
+import requests
+from pymongo import MongoClient
+from datetime import date, datetime
+import logging
+logging.basicConfig(level=logging.INFO)
 
 
 # connect to the database
@@ -25,7 +29,7 @@ symbols = [x['Symbol'] for x in xs]
 
 # historical daily prices
 toTs = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) \
-    .timestamp() - (60 * 60 * 24)
+    .timestamp() - (60 * 60 * 23)
 
 for symbol in symbols:
     url = ("https://min-api.cryptocompare.com/data/v2/histoday" +
@@ -33,7 +37,8 @@ for symbol in symbols:
     response = requests.request("GET", url.format(symbol, toTs))
     data = json.loads(response.text)['Data']
 
-    found_record = [x for x in data['Data'] if x['time'] == toTs]
+    found_record = [x for x in data['Data'] if x['time'] == toTs][0]
     if found_record:
+        logging.info(f'Found record for {symbol}')
         found_record['createdAt'] = datetime.now().isoformat()
-        db['Price_by_Daily'].insert_one(record)
+        db['Price_by_Daily'].insert_one(found_record)
